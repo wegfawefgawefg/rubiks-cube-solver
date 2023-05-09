@@ -1,4 +1,5 @@
 from collections import deque
+import itertools
 from pprint import pprint
 import random
 import time
@@ -82,7 +83,7 @@ class Face:
 class Cube:
     FACE_CODE_TO_INDEX = {"U": 0, "D": 1, "L": 2, "R": 3, "F": 4, "B": 5}
     SOLVED = [Face(color) for color in range(6)]
-
+    FACES = ["U", "D", "L", "R", "F", "B"]
     FACE_ADJACENCIES = {
         "F": ["U", "R", "D", "L"],
         "B": ["U", "L", "D", "R"],
@@ -105,6 +106,11 @@ class Cube:
     def __init__(self):
         self.faces = [Face(color) for color in range(6)]
 
+    def scramble(self, moves=100):
+        for _ in range(moves):
+            self.rotate_face(random.choice(Cube.FACES))
+        return self
+
     def clock_faces(self):
         [face.make_clock_face(i) for i, face in enumerate(self.faces)]
         return self
@@ -117,14 +123,14 @@ class Cube:
         return self
 
     def is_win(self):
-        for win_face, face in zip(self.SOLVED.faces, self.state.faces):
+        for win_face, face in zip(self.SOLVED, self.faces):
             if win_face != face:
                 return False
         return True
 
     def rate(self):
         correctness = 0
-        for solved_face, face in zip(self.SOLVED.faces, self.state.faces):
+        for solved_face, face in zip(self.SOLVED, self.faces):
             for solved_row, row in zip(solved_face.cells, face.cells):
                 for solved_cell, cell in zip(solved_row, row):
                     if solved_cell == cell:
@@ -318,14 +324,58 @@ class Cube:
             d.set_bottom_edge(l_l)
             l.set_left_edge(u_t)
 
+    def animate(self):
+        while True:
+            for move in moves:
+                for i in range(15):
+                    cube.print()
+                    cube.rotate_face(move)
+                    print("\033c", end="")
+                    time.sleep(0.1)
+
+    def solve(self, max_depth):
+        # Check if the cube is already solved
+        if self.is_win():
+            return []
+
+        # Generate all possible moves
+        all_moves = ["U", "D", "L", "R", "F", "B"]
+
+        # Initialize the queue for BFS
+        queue = deque([(self, [])])
+
+        # Run BFS
+        while queue:
+            current_cube, current_moves = queue.popleft()
+
+            # If the maximum depth is reached, return None
+            if len(current_moves) == max_depth:
+                continue
+
+            # Try all possible moves
+            for move in all_moves:
+                # Create a new cube and apply the move
+                new_cube = Cube()
+                new_cube.faces = [Face(face.cells) for face in current_cube.faces]
+                new_cube.rotate_face(move)
+
+                # If the new cube is solved, return the moves
+                if new_cube.is_win():
+                    return current_moves + [move]
+
+                # Add the new cube and the moves to the queue
+                queue.append((new_cube, current_moves + [move]))
+
+        # If no solution is found, return None
+        return None
+
 
 if __name__ == "__main__":
     moves = ("U", "D", "L", "R", "F", "B")
-    cube = Cube().checker()
-    while True:
-        for move in moves:
-            for i in range(15):
-                cube.print()
-                cube.rotate_face(move)
-                print("\033c", end="")
-                time.sleep(0.1)
+    scramble_amount = 1
+    cube = Cube().scramble(scramble_amount)
+    cube.print()
+    print(f"Scrambled {scramble_amount} times.")
+    solution = cube.solve(6)
+    print(f"Solution: {solution}")
+    # cube.print()
