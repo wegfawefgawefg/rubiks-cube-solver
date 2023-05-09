@@ -1,4 +1,4 @@
-# rubiks-cube-solver
+# rubiks-cube-toy
 
 virtual cube playland
 
