@@ -1,6 +1,6 @@
 # rubiks-cube-solver
 
-try brute bfs all the patterns??
+virtual cube playland
 
 ## todo
 
