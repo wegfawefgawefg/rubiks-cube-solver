@@ -13,6 +13,7 @@ edit main to change the number of scramble moves and brute force searth depth.
 - simplify to 3 ops?
 - scripting moves
 - script AST optimizer
+- fix bug in max sqnce length
 
 ## todid
 
