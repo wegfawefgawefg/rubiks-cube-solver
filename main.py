@@ -422,7 +422,7 @@ class Cube:
 
 if __name__ == "__main__":
     print("Welcome to Cube Toy")
-    scramble_amount = 3
+    scramble_amount = 2
     cube = Cube()
     # cube.animate()
     cube.scramble(scramble_amount)
