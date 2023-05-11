@@ -349,6 +349,16 @@ class Cube:
             self.print()
             print()
 
+    def animate_solution(self, solution):
+        print("\033c", end="")
+        self.print()
+        time.sleep(1)
+        for move in solution:
+            self.rotate_face(move)
+            print("\033c", end="")
+            self.print()
+            time.sleep(0.2)
+
     def solve(self, max_move_sequence_length):
         """
         BFS solution finder:
@@ -412,8 +422,9 @@ class Cube:
 
 if __name__ == "__main__":
     print("Welcome to Cube Toy")
-    scramble_amount = 2
+    scramble_amount = 3
     cube = Cube()
+    # cube.animate()
     cube.scramble(scramble_amount)
     cube.print()
     print(f"Scrambled {scramble_amount} times.\n")
@@ -423,8 +434,9 @@ if __name__ == "__main__":
 
     print(f"\nSolution: {solution}")
     print("Lets apply the solution...")
-    cube.print()
+    cube.animate_solution(solution)
+    # cube.print()
     print()
-    cube.apply_move_sequence(solution)
+    # cube.apply_move_sequence(solution)
     print(f"Solved! in {len(solution)} steps.")
-    cube.print()
+    print(f"\nSolution: {solution}")
