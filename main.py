@@ -6,6 +6,8 @@ import time
 from colorama import Fore, Style
 from enum import Enum, auto
 
+from sequence_counter import SequenceCounter
+
 
 # facecode enum
 class FaceCode(Enum):
@@ -175,6 +177,7 @@ class Cube:
             print()
 
     def rotate_face(self, face_code):
+        # print(f"Rotating {face_code}")
         face = self.faces[Cube.FACE_CODE_TO_INDEX[face_code]]
         rotated_face = [[0 for _ in range(3)] for _ in range(3)]
         for y in range(3):
@@ -326,56 +329,102 @@ class Cube:
 
     def animate(self):
         while True:
-            for move in moves:
+            for move in self.FACES:
                 for i in range(15):
-                    cube.print()
-                    cube.rotate_face(move)
+                    self.print()
+                    self.rotate_face(move)
                     print("\033c", end="")
                     time.sleep(0.1)
 
-    def solve(self, max_depth):
-        # Check if the cube is already solved
-        if self.is_win():
-            return []
+    def clone(self):
+        clone = Cube()
+        for clone_face, face in zip(clone.faces, self.faces):
+            clone_face.cells = [row[:] for row in face.cells]
+        return clone
 
-        # Generate all possible moves
-        all_moves = ["U", "D", "L", "R", "F", "B"]
+    def apply_move_sequence(self, move_sequence):
+        for move in move_sequence:
+            print(move)
+            self.rotate_face(move)
+            self.print()
+            print()
 
-        # Initialize the queue for BFS
-        queue = deque([(self, [])])
+    def solve(self, max_move_sequence_length):
+        """
+        BFS solution finder:
 
-        # Run BFS
-        while queue:
-            current_cube, current_moves = queue.popleft()
+        What:
+            Does a breadth first search without cacheing or short circuiting.
+            Each attempted set of moves is encoded in a list of n numbers where each n
+            is up to the branching factor in magnitude.
+            Essentially its a base-branching-factor number.
 
-            # If the maximum depth is reached, return None
-            if len(current_moves) == max_depth:
-                continue
+        Examples of move_set codes:
+            move UUUUUU is [0, 0, 0, 0, 0]
+            move UDLRFB is [0, 1, 2, 3, 4, 5]
 
-            # Try all possible moves
-            for move in all_moves:
-                # Create a new cube and apply the move
-                new_cube = Cube()
-                new_cube.faces = [Face(face.cells) for face in current_cube.faces]
-                new_cube.rotate_face(move)
+        Constraints:
+            -branch code [0, 5, 2, 7] would be invalid, because there are only 5 (0 to 6) possible moves.
+            -with a max search search depth of 4, branch code [0, 5, 2, 4, 3] would never be tested.
+                All moves up to [5, 5, 5, 5] would be tested.
 
-                # If the new cube is solved, return the moves
-                if new_cube.is_win():
-                    return current_moves + [move]
+        Potential Optimizations:
+            - Cacheing:
+                Previously attempted moves are not stored. Previously attempted equivalent states are not stored.
+                Rubiks cubes have too many possible states. With a god number of 20 for return to the origin on a
+                random walk on a graph with branching factor 6, one would have to bfs 6^20'th moves.
+                Storage for short circuiting the BFS is unimplemented, and practicality of this technique is unnasessed.
+            - Move Set Compilation for Branch Elimination:
+                Some move numbers are equivalent in result states.
+                Examples:
+                    - [0, 0, 0, 0] == [] == [0, 0, 0, 0, 0, 0, 0]
+                        rotating the same side 4 times is a noop,
+                Pattern reduction, which should look very similar to the AST optimization stage of compiling
+                any typical computer language, can be used to compare much larger patterns with a hash of much
+                shorter, but already attempted, patterns. Thus allowing short circuiting on patterns that have
+                essentially already been tested.
 
-                # Add the new cube and the moves to the queue
-                queue.append((new_cube, current_moves + [move]))
+        """
+        branching_factor = len(Cube.FACES)
+        current_move_sequence_code = SequenceCounter(base=branching_factor)
+        final_move_sequence_code = [
+            branching_factor - 1 for _ in range(max_move_sequence_length)
+        ]
+        while True:
+            test_cube = self.clone()
 
-        # If no solution is found, return None
-        return None
+            #   apply every move in the move sequence currently being tested
+            for face_num in current_move_sequence_code:
+                face_code = Cube.FACES[face_num]
+                test_cube.rotate_face(face_code)
+
+            #   check for a win
+            if test_cube.is_win():
+                return [  #   the winning moves
+                    face_code := Cube.FACES[face_num]
+                    for face_num in current_move_sequence_code
+                ]
+
+            current_move_sequence_code.increment()
+
+        return None  #   made it out without finding a solution
 
 
 if __name__ == "__main__":
-    moves = ("U", "D", "L", "R", "F", "B")
-    scramble_amount = 1
-    cube = Cube().scramble(scramble_amount)
+    print("Welcome to Cube Toy")
+    scramble_amount = 2
+    cube = Cube()
+    cube.scramble(scramble_amount)
     cube.print()
-    print(f"Scrambled {scramble_amount} times.")
-    solution = cube.solve(6)
-    print(f"Solution: {solution}")
-    # cube.print()
+    print(f"Scrambled {scramble_amount} times.\n")
+    solution = cube.solve(3)
+    if not solution:
+        print("No solution found at given search depth. :(")
+
+    print(f"\nSolution: {solution}")
+    print("Lets apply the solution...")
+    cube.print()
+    print()
+    cube.apply_move_sequence(solution)
+    print(f"Solved! in {len(solution)} steps.")
+    cube.print()
